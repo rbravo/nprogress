@@ -22,8 +22,8 @@
     positionUsing: '',
     speed: 200,
     trickle: true,
-    trickleRate: 0.02,
-    trickleSpeed: 800,
+    trickleRate: 0.15,
+    trickleSpeed: 1500,
     showSpinner: true,
     barSelector: '[role="bar"]',
     spinnerSelector: '[role="spinner"]',
@@ -118,14 +118,16 @@
    *     NProgress.start();
    *
    */
+  NProgress.iTimeout = 0;
   NProgress.start = function() {
     if (!NProgress.status) NProgress.set(0);
 
-    var work = function() {
-      setTimeout(function() {
-        if (!NProgress.status) return;
-        NProgress.trickle();
-        work();
+    var work = function () {
+        if (NProgress.iTimeout) clearTimeout(NProgress.iTimeout);
+        NProgress.iTimeout = setTimeout(function () {
+            if (!NProgress.status) return;
+            NProgress.trickle();
+            work();
       }, Settings.trickleSpeed);
     };
 
@@ -148,31 +150,30 @@
 
   NProgress.done = function(force) {
     if (!force && !NProgress.status) return this;
-
-    return NProgress.inc(0.3 + 0.5 * Math.random()).set(1);
+    return NProgress.set(1);
   };
 
   /**
    * Increments by a random amount.
    */
 
-  NProgress.inc = function(amount) {
-    var n = NProgress.status;
+  NProgress.inc = function (amount) {
+      var n = NProgress.status;
 
-    if (!n) {
-      return NProgress.start();
-    } else {
-      if (typeof amount !== 'number') {
-        amount = (1 - n) * clamp(Math.random() * n, 0.1, 0.95);
+      if (!n) {
+          return NProgress.start();
+      } else {
+          if (typeof amount !== 'number') {
+              amount = (1-n) * Settings.trickleRate;
+          }
+
+          n = clamp(n + amount, 0, 0.994);
+          return NProgress.set(n);
       }
-
-      n = clamp(n + amount, 0, 0.994);
-      return NProgress.set(n);
-    }
   };
 
   NProgress.trickle = function() {
-    return NProgress.inc(Math.random() * Settings.trickleRate);
+      return NProgress.inc((1-NProgress.status) * Settings.trickleRate);
   };
 
   /**
